@@ -43,16 +43,24 @@ export const weatherLoading = writable(false);
 export const weatherOverlay = derived(weatherData, $w => $w.overlay);
 
 // ── Location helpers ──────────────────────────────────────────────────
+function sanitizeStoredLocation(loc: StoredLocation): StoredLocation {
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+  return { ...loc, lat: round2(loc.lat), lon: round2(loc.lon) };
+}
+
 export function loadStoredLocation(): StoredLocation | null {
   try {
     const raw = localStorage.getItem('sc_weather_loc');
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as StoredLocation;
+    return sanitizeStoredLocation(parsed);
   } catch { return null; }
 }
 
 export function saveLocation(loc: StoredLocation) {
-  try { localStorage.setItem('sc_weather_loc', JSON.stringify(loc)); } catch {}
-  storedLocation.set(loc);
+  const safeLoc = sanitizeStoredLocation(loc);
+  try { localStorage.setItem('sc_weather_loc', JSON.stringify(safeLoc)); } catch {}
+  storedLocation.set(safeLoc);
 }
 
 // ── Sun math ──────────────────────────────────────────────────────────
