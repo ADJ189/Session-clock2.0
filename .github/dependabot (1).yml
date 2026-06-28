@@ -1,0 +1,74 @@
+version: 2
+updates:
+  # ── npm dependencies ────────────────────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+
+    # ── Ignore rules ──────────────────────────────────────────────────────────
+    # NOTE: `ignore[].update-types` uses "version-update:semver-*" prefix
+    ignore:
+      # `cookie` is a transitive dep of @sveltejs/kit.
+      # kit@2.68.0 pins cookie@^0.6.0, so Dependabot can never upgrade it
+      # without downgrading adapter-static to 0.0.17.  Suppress all cookie
+      # updates here — the fix arrives automatically when kit itself bumps
+      # its cookie requirement to ^0.7.0+.
+      - dependency-name: "cookie"
+        update-types:
+          - "version-update:semver-patch"
+          - "version-update:semver-minor"
+          - "version-update:semver-major"
+
+    # ── Update groups ─────────────────────────────────────────────────────────
+    # NOTE: `groups[].update-types` uses short values: major | minor | patch
+    groups:
+      # vite-plugin-svelte v7 requires vite v8 as a peer dep.
+      # Both must land in one PR — upgrading either alone breaks peer-dep
+      # validation and the Cloudflare Pages build.
+      vite-ecosystem:
+        patterns:
+          - "vite"
+          - "@sveltejs/vite-plugin-svelte"
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"
+
+      # kit and adapter-static share internals; upgrading them separately
+      # can cause transient build failures on Cloudflare Pages.
+      svelte-kit-ecosystem:
+        patterns:
+          - "@sveltejs/kit"
+          - "@sveltejs/adapter-static"
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"
+
+      # Svelte compiler and its type-checker should stay in sync.
+      svelte-compiler:
+        patterns:
+          - "svelte"
+          - "svelte-check"
+        update-types:
+          - "minor"
+          - "patch"
+
+      # Everything else (typescript, etc.) batched into one low-noise PR.
+      npm-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ── GitHub Actions ───────────────────────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
