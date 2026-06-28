@@ -1,26 +1,74 @@
 version: 2
 updates:
-  # Maintain dependencies for npm
+  # ── npm dependencies ────────────────────────────────────────────────────────
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
-    
-    # Optional: Automatically assign reviewers or labels
     labels:
       - "dependencies"
-    
-    # Optional: Group minor and patch updates together to reduce PR noise
+
+    # ── Ignore rules ──────────────────────────────────────────────────────────
+    ignore:
+      # `cookie` is a transitive dependency of @sveltejs/kit.
+      # kit@2.68.0 pins cookie@^0.6.0 — Dependabot cannot upgrade cookie past
+      # 0.6.0 without downgrading adapter-static to 0.0.17, so direct updates
+      # are impossible and only create noise.  The fix will arrive automatically
+      # when @sveltejs/kit itself ships a release that bumps cookie to ^0.7.0+.
+      - dependency-name: "cookie"
+        update-types:
+          - "version-update:semver-patch"
+          - "version-update:semver-minor"
+          - "version-update:semver-major"
+
+    # ── Update groups ─────────────────────────────────────────────────────────
     groups:
+      # @sveltejs/vite-plugin-svelte v7 requires vite v8 as a peer dependency.
+      # These two packages must be upgraded together in a single PR, otherwise
+      # the intermediate state (plugin v7 + vite v6, or plugin v5 + vite v8)
+      # will fail peer-dependency validation and break the build.
+      vite-ecosystem:
+        patterns:
+          - "vite"
+          - "@sveltejs/vite-plugin-svelte"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"
+
+      # SvelteKit + its static adapter share a peer relationship through cookie
+      # and kit internals.  Group them so version skew between the two does not
+      # introduce transient breakage on Cloudflare Pages builds.
+      svelte-kit-ecosystem:
+        patterns:
+          - "@sveltejs/kit"
+          - "@sveltejs/adapter-static"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"
+
+      # Svelte compiler + tooling can be kept in sync independently.
+      svelte-compiler:
+        patterns:
+          - "svelte"
+          - "svelte-check"
+        update-types:
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"
+
+      # All remaining minor/patch bumps (typescript, etc.) in one low-noise PR.
       npm-minor-patch:
         patterns:
           - "*"
         update-types:
-          - "minor"
-          - "patch"
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"
 
-  # Maintain GitHub Actions (if you use them for CI/CD)
+  # ── GitHub Actions ───────────────────────────────────────────────────────────
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    labels:
+      - "dependencies"
