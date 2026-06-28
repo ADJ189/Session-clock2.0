@@ -28,7 +28,7 @@
     <span class="log-count">{entries.length} session{entries.length !== 1 ? 's' : ''}</span>
   </header>
   <div class="log-add">
-    <input class="log-input" bind:value={newNote} placeholder="Add session note…" on:keydown={e => e.key === 'Enter' && addEntry()} />
+    <input class="log-input" bind:value={newNote} maxlength={500} placeholder="Add session note…" on:keydown={e => e.key === 'Enter' && addEntry()} />
     <button class="log-add-btn" on:click={addEntry}>Add</button>
   </div>
   <div class="log-list">
