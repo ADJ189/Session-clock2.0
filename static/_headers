@@ -1,20 +1,38 @@
 /*
+  # Prevent MIME sniffing
   X-Content-Type-Options: nosniff
+  # Deny framing (clickjacking protection)
   X-Frame-Options: DENY
-  X-XSS-Protection: 1; mode=block
+  # X-XSS-Protection intentionally omitted — deprecated; CSP below replaces it
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(self), geolocation=(self), payment=()
-  Cross-Origin-Opener-Policy: same-origin-allow-popups
+  # Match dev server COOP setting (same-origin blocks opener access)
+  Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Resource-Policy: same-origin
+  # Content Security Policy
+  # - default-src self covers JS/CSS/fetch fallback
+  # - Google Fonts requires style-src + font-src for fonts.gstatic.com
+  # - Weather data from open-meteo.com (connect-src)
+  # - Geocoding from nominatim.openstreetmap.org (connect-src)
+  # - No inline scripts or eval permitted
+  Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.open-meteo.com https://nominatim.openstreetmap.org; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
 
+# Immutable cache for hashed Vite assets
 /*.js
   Cache-Control: public, max-age=31536000, immutable
 
 /*.css
   Cache-Control: public, max-age=31536000, immutable
 
+# Always revalidate entry points
 /index.html
   Cache-Control: no-cache, no-store, must-revalidate
 
+/404.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
 /sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/manifest.json
   Cache-Control: no-cache, no-store, must-revalidate
