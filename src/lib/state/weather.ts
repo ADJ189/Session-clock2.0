@@ -81,7 +81,8 @@ export function calcSunTimes(lat: number, lon: number): SunTimes {
 }
 
 // ── Weather fetch ─────────────────────────────────────────────────────
-let refreshTimer = 0;
+// Explicit number type — window.setInterval returns a number in browsers
+let refreshTimer: number = 0;
 
 async function fetchWeather(lat: number, lon: number) {
   weatherLoading.set(true);
@@ -95,7 +96,15 @@ async function fetchWeather(lat: number, lon: number) {
       + `&hourly=temperature_2m,weathercode&daily=weathercode,temperature_2m_max,temperature_2m_min`
       + `&temperature_unit=celsius&windspeed_unit=kmh&timezone=auto&forecast_days=7`;
 
-    const res = await fetch(url, { signal: AbortSignal.timeout ? AbortSignal.timeout(10000) : undefined });
+    // AbortSignal.timeout() is baseline-available in all Chromium 103+, Firefox 100+, Safari 16+
+    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+
+    // Guard against non-2xx responses before attempting to parse JSON —
+    // calling .json() on an error response body silently corrupts store state.
+    if (!res.ok) {
+      throw new Error(`Weather API returned ${res.status}`);
+    }
+
     const data = await res.json();
     const cur = data.current;
     const code: number = cur.weathercode;
@@ -129,7 +138,7 @@ async function fetchWeather(lat: number, lon: number) {
       }))
     );
   } catch {
-    // Keep last known data
+    // Keep last known data on any network or parse error
   } finally {
     weatherLoading.set(false);
   }
@@ -141,6 +150,7 @@ export async function reverseGeocode(lat: number, lon: number): Promise<string> 
       `https://nominatim.openstreetmap.org/reverse?lat=${lat.toFixed(4)}&lon=${lon.toFixed(4)}&format=json`,
       { headers: { 'Accept-Language': 'en' } }
     );
+    if (!res.ok) return '';
     const d = await res.json();
     return d?.address?.city || d?.address?.town || d?.address?.village || '';
   } catch { return ''; }
@@ -151,6 +161,7 @@ export async function searchCity(query: string): Promise<Array<{name: string; su
     `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5`,
     { headers: { 'Accept-Language': 'en' } }
   );
+  if (!res.ok) return [];
   const data = await res.json();
   return data.map((item: any) => ({
     name: item.address?.city || item.address?.town || item.address?.village || item.display_name.split(',')[0],
