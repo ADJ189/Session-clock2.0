@@ -1,6 +1,49 @@
-// ── Core types for Session Clock ──────────────────────────────────────
+export interface Theme {
+  id: string;
+  name: string;
+  cat: 'nat' | 'tv' | 'movie' | 'f1' | 'anime' | 'animation';
+  sub?: string;
+  tagline?: string;
+  swatch?: string;
+  font: string;
+  bgType: string;
+  baseBg: string[];
+  bgColors?: string[];
+  overlay: string;
+  vignette: string;
+  text: string;
+  accent: string;
+  accent2: string;
+  track: string;
+  btnBg: string;
+  btnFg: string;
+  pill: string;
+  panel: string;
+  glow: string;
+  hdr: boolean;
+  grain: boolean;
+  scanlines: boolean;
+  lb: boolean;
+  isMedia: boolean;
+  light?: boolean;
+  transition?: string;
+  quotes?: string[];
+}
 
-export type WeatherOverlay = 'clear' | 'rain' | 'snow' | 'thunder' | 'fog' | 'cloudy' | 'none';
+export interface AppSettings {
+  weatherAdaptiveTheme: boolean;
+  privacyMode: boolean;
+  themeMode: 'auto' | 'manual';
+  clockPosition: 'center' | 'left';
+  pomodoroWork: number;
+  pomodoroBreak: number;
+  soundEnabled: boolean;
+  binauralEnabled: boolean;
+  zenMode: boolean;
+  reduceMotion: boolean;
+  currentThemeId: string;
+  qualityTier: 'low' | 'med' | 'high' | 'auto';
+}
 
 export interface WeatherData {
   temp: number | null;
@@ -12,53 +55,8 @@ export interface WeatherData {
   overlay: WeatherOverlay;
   icon: string;
 }
-
-export interface HourlyForecast {
-  time: string;
-  temp: number;
-  code: number;
-}
-
-export interface DailyForecast {
-  date: string;
-  minTemp: number;
-  maxTemp: number;
-  code: number;
-}
-
-export interface SunTimes {
-  rise: number;   // minutes since midnight
-  set: number;
-  noon: number;
-}
-
-export interface StoredLocation {
-  lat: number;
-  lon: number;
-  name?: string;
-}
-
-export type TabId = 'clock' | 'weather' | 'pomodoro' | 'log' | 'settings';
-
-export interface Tab {
-  id: TabId;
-  path: string;
-  label: string;
-  icon: string;
-}
-
-export type ClockPosition = 'center' | 'top' | 'bottom';
-export type ThemeMode = 'auto' | 'dark' | 'light';
-
-export interface AppSettings {
-  weatherAdaptiveTheme: boolean;
-  privacyMode: boolean;
-  themeMode: ThemeMode;
-  clockPosition: ClockPosition;
-  pomodoroWork: number;
-  pomodoroBreak: number;
-  soundEnabled: boolean;
-  binauralEnabled: boolean;
-  zenMode: boolean;
-  reduceMotion: boolean;
-}
+export type WeatherOverlay = 'none'|'clear'|'cloudy'|'rain'|'snow'|'thunder'|'fog';
+export interface HourlyForecast { time: string; temp: number; code: number; }
+export interface DailyForecast { date: string; minTemp: number; maxTemp: number; code: number; }
+export interface SunTimes { rise: number; set: number; noon: number; }
+export interface StoredLocation { lat: number; lon: number; name: string; }
