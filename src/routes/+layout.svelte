@@ -2,47 +2,94 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { settings } from '$lib/state/settings';
-  import { activeWeatherClass } from '$lib/state/theme';
+  import { currentTheme } from '$lib/state/theme';
   import { initWeatherService } from '$lib/state/weather';
-  import Sidebar from '$components/sidebar/Sidebar.svelte';
   import '../app.css';
 
-  let mounted = false;
-  let isMobile = false;
+  const tabs = [
+    { id: 'clock',    path: '/',         label: 'Clock',   icon: '⏱' },
+    { id: 'weather',  path: '/weather',  label: 'Weather', icon: '🌤' },
+    { id: 'pomodoro', path: '/pomodoro', label: 'Focus',   icon: '🍅' },
+    { id: 'settings', path: '/settings', label: 'Settings',icon: '⚙' },
+  ];
 
-  $: weatherClass = $activeWeatherClass;
+  let isMobile = false;
+  $: activePath = $page.url.pathname;
+  $: theme = $currentTheme;
+
+  // Convert a theme's accent hex to "r, g, b" for rgba() usage in CSS
+  function hexToRgb(hex: string): string {
+    const h = hex.replace('#', '');
+    const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+    const n = parseInt(full.slice(0, 6), 16);
+    if (Number.isNaN(n)) return '110, 231, 183';
+    return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
+  }
+  $: accentRgb = hexToRgb(theme.accent);
 
   onMount(() => {
-    mounted = true;
     isMobile = window.innerWidth <= 600;
+    window.addEventListener('resize', () => { isMobile = window.innerWidth <= 600; });
 
-    const handleResize = () => { isMobile = window.innerWidth <= 600; };
-    window.addEventListener('resize', handleResize);
+    if (!$settings.privacyMode) {
+      initWeatherService(() => $settings.privacyMode);
+    }
 
-    // Init weather (silent — no popups)
-    initWeatherService(() => $settings.privacyMode);
-
-    // Reduce motion preference
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
     if (mq.matches) settings.setKey('reduceMotion', true);
     mq.addEventListener('change', e => settings.setKey('reduceMotion', e.matches));
-
-    return () => window.removeEventListener('resize', handleResize);
   });
 </script>
 
+<!-- Theme-driven CSS custom properties, consumed by weather/pomodoro/settings pages -->
 <div
   id="sc-root"
-  data-mobile={isMobile}
-  data-reduce-motion={$settings.reduceMotion}
-  data-zen={$settings.zenMode}
-  class={weatherClass}
+  style="
+    --accent:{theme.accent};
+    --accent-rgb:{accentRgb};
+    --bg:{theme.baseBg[0]};
+    --fg:{theme.text};
+    background:{theme.baseBg[0]};
+    color:{theme.text};
+    font-family:{theme.font};
+  "
 >
-  <Sidebar {isMobile} />
+  <!-- Sidebar / Bottom nav -->
+  {#if !$settings.zenMode}
+  <nav
+    class="sc-nav"
+    class:sc-nav--side={!isMobile}
+    class:sc-nav--bottom={isMobile}
+    style="background:{theme.panel}; border-color:rgba(255,255,255,.07);"
+    aria-label="Main navigation"
+  >
+    {#each tabs as tab}
+      <a
+        href={tab.path}
+        class="sc-tab"
+        class:sc-tab--active={activePath === tab.path}
+        style={activePath === tab.path
+          ? `color:${theme.accent}; background:${theme.btnBg};`
+          : `color:${theme.text}; opacity:.45;`}
+        aria-label={tab.label}
+        aria-current={activePath === tab.path ? 'page' : undefined}
+      >
+        <span class="sc-tab-icon">{tab.icon}</span>
+        <span class="sc-tab-label">{tab.label}</span>
+      </a>
+    {/each}
+  </nav>
+  {/if}
 
-  <div class="sc-content" class:sc-content--mobile={isMobile}>
+  <!-- Route content (clock page renders its own full-screen canvas, other pages are overlaid) -->
+  <main
+    class="sc-content"
+    class:sc-content--side={!isMobile && !$settings.zenMode}
+    class:sc-content--bottom={isMobile && !$settings.zenMode}
+    class:sc-content--zen={$settings.zenMode}
+  >
     <slot />
-  </div>
+  </main>
 </div>
 
 <style>
@@ -50,80 +97,46 @@
   :global(html, body) { height: 100%; overflow: hidden; }
 
   #sc-root {
-    display: grid;
-    grid-template-columns: var(--sidebar-w, 64px) 1fr;
-    grid-template-rows: 1fr;
-    height: 100dvh;
-    width: 100vw;
-    overflow: hidden;
-    background: var(--bg, #06030f);
-    color: var(--fg, #e8e0f0);
-    font-family: 'Inter', system-ui, sans-serif;
+    position: fixed; inset: 0;
+    transition: background .4s ease, color .4s ease;
   }
 
-  #sc-root[data-mobile='true'] {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr var(--sidebar-h, 56px);
-  }
-
-  .sc-content {
-    position: relative;
-    overflow: hidden;
+  .sc-nav {
+    position: fixed; z-index: 50;
     display: flex;
-    flex-direction: column;
+    border-style: solid;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+  .sc-nav--side {
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-w, 64px);
+    flex-direction: column; align-items: center;
+    padding: 16px 0; gap: 4px;
+    border-right-width: 1px; border-top-width: 0; border-bottom-width: 0; border-left-width: 0;
+  }
+  .sc-nav--bottom {
+    bottom: 0; left: 0; right: 0;
+    height: var(--sidebar-h, 56px);
+    flex-direction: row; justify-content: space-around; align-items: center;
+    padding: 0 4px; border-top-width: 1px; border-bottom-width: 0;
+    border-left-width: 0; border-right-width: 0;
   }
 
-  .sc-content--mobile {
-    order: -1;
+  .sc-tab {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 3px; padding: 8px 6px; border-radius: 10px;
+    text-decoration: none; transition: all .15s;
+    font-family: inherit; cursor: pointer; border: none;
   }
+  .sc-nav--side .sc-tab { width: 48px; }
+  .sc-nav--bottom .sc-tab { flex: 1; max-width: 72px; padding: 5px 4px; }
+  .sc-tab-icon { font-size: 1.1rem; line-height: 1; }
+  .sc-tab-label { font-size: .45rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 600; }
+  .sc-tab--active { opacity: 1 !important; }
 
-  /* Weather overlay classes applied to root */
-  :global(#sc-root.weather-rain::after) {
-    content: '';
-    position: fixed; inset: 0; z-index: 5;
-    pointer-events: none;
-    background-image: repeating-linear-gradient(
-      175deg, transparent 0px, transparent 6px,
-      rgba(var(--accent-rgb, 110,231,183), .04) 6px,
-      rgba(var(--accent-rgb, 110,231,183), .04) 7px
-    );
-    animation: globalRain 1.2s linear infinite;
-  }
-  @keyframes globalRain {
-    from { background-position: 0 -100vh; }
-    to   { background-position: 0 100vh; }
-  }
-
-  :global(#sc-root.weather-thunder::after) {
-    content: '';
-    position: fixed; inset: 0; z-index: 5; pointer-events: none;
-    animation: globalThunder 6s ease-in-out infinite;
-  }
-  @keyframes globalThunder {
-    0%,82%,90%,100% { background: rgba(140,80,255,0); }
-    83%,89%          { background: rgba(140,80,255,.05); }
-  }
-
-  :global(#sc-root.weather-snow::after) {
-    content: '· · · · · · ·';
-    position: fixed; inset: 0; z-index: 5; pointer-events: none;
-    font-size: 1.6rem; letter-spacing: 50px; line-height: 4;
-    color: rgba(220,235,255,.1);
-    animation: globalSnow 9s linear infinite; overflow: hidden;
-  }
-  @keyframes globalSnow {
-    from { transform: translateY(-80px) translateX(-15px); }
-    to   { transform: translateY(calc(100vh + 80px)) translateX(15px); }
-  }
-
-  :global(#sc-root.weather-fog::after) {
-    content: '';
-    position: fixed; inset: 0; z-index: 5; pointer-events: none;
-    background: radial-gradient(ellipse at 50% 50%, transparent 30%, rgba(140,150,170,.07) 100%);
-    animation: globalFog 7s ease-in-out infinite alternate;
-  }
-  @keyframes globalFog {
-    from { opacity: .5; }
-    to   { opacity: 1; }
-  }
+  .sc-content { position: fixed; inset: 0; z-index: 10; overflow: hidden; }
+  .sc-content--side { left: var(--sidebar-w, 64px); }
+  .sc-content--bottom { bottom: var(--sidebar-h, 56px); }
+  .sc-content--zen { inset: 0; }
 </style>
