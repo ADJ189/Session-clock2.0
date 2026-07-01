@@ -1,5 +1,5 @@
 import { writable, derived } from 'svelte/store';
-import type { WeatherData, HourlyForecast, DailyForecast, SunTimes, StoredLocation, WeatherOverlay } from '$lib/types';
+import type { WeatherData, HourlyForecast, DailyForecast, SunTimes, StoredLocation, WeatherOverlay } from '$lib/types/index.js';
 
 // ── WMO code table ────────────────────────────────────────────────────
 export const WMO: Record<number, [string, string]> = {

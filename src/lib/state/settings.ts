@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
-import type { AppSettings } from '$lib/types';
+import type { AppSettings } from '$lib/types/index.js';
 
-const SETTINGS_KEY = 'sc_settings_v3';
+const SETTINGS_KEY = 'sc_settings_v4';
 
 const defaults: AppSettings = {
   weatherAdaptiveTheme: true,
@@ -14,6 +14,8 @@ const defaults: AppSettings = {
   binauralEnabled: false,
   zenMode: false,
   reduceMotion: false,
+  currentThemeId: 'aurora',
+  qualityTier: 'auto',
 };
 
 function loadSettings(): AppSettings {
@@ -21,26 +23,19 @@ function loadSettings(): AppSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     return raw ? { ...defaults, ...JSON.parse(raw) } : { ...defaults };
-  } catch {
-    return { ...defaults };
-  }
+  } catch { return { ...defaults }; }
 }
 
 function createSettings() {
   const { subscribe, set, update } = writable<AppSettings>(loadSettings());
-
+  const persist = (v: AppSettings) => {
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(v)); } catch {}
+  };
   return {
     subscribe,
-    set(value: AppSettings) {
-      set(value);
-      try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(value)); } catch {}
-    },
+    set(value: AppSettings) { set(value); persist(value); },
     update(fn: (v: AppSettings) => AppSettings) {
-      update(current => {
-        const next = fn(current);
-        try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(next)); } catch {}
-        return next;
-      });
+      update(current => { const next = fn(current); persist(next); return next; });
     },
     toggle(key: keyof AppSettings) {
       this.update(s => ({ ...s, [key]: !s[key] }));
