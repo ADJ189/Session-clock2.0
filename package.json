@@ -1,7 +1,7 @@
 {
   "name": "session-clock",
   "version": "8.0.0",
-  "description": "Beautiful animated focus clock — 63+ themes, Pomodoro, ambient sound, weather, focus log.",
+  "description": "Beautiful animated focus clock \u2014 63+ cinematic themes, Pomodoro, weather, fluid-mechanics canvas renderer.",
   "private": true,
   "type": "module",
   "scripts": {
