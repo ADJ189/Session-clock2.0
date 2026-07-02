@@ -34,5 +34,5 @@ input  { font-family: inherit; }
 /* Focus ring */
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* Svelte page wrapper — fill height */
-:global(#sc-root) { height: 100dvh; }
+/* Root app shell */
+#sc-root { height: 100dvh; }
